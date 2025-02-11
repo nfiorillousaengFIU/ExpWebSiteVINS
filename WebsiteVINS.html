@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIN Decoder</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        input {
+            width: 300px;
+            padding: 10px;
+            margin: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        #result {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h2>VIN Decoder</h2>
+    <input type="text" id="vin" placeholder="Enter VIN">
+    <button onclick="decodeVIN()">Decode</button>
+    <div id="result"></div>
+
+    <script>
+        function decodeVIN() {
+            const vin = document.getElementById("vin").value.trim();
+            if (!vin) {
+                alert("Please enter a VIN");
+                return;
+            }
+            
+            fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVIN/${vin}?format=json`)
+                .then(response => response.json())
+                .then(data => {
+                    let results = data.Results;
+                    let year = results.find(item => item.Variable === "Model Year")?.Value || "N/A";
+                    let make = results.find(item => item.Variable === "Make")?.Value || "N/A";
+                    let model = results.find(item => item.Variable === "Model")?.Value || "N/A";
+                    let trim = results.find(item => item.Variable === "Trim")?.Value || "N/A";
+                    let series = results.find(item => item.Variable === "Series")?.Value || "N/A";
+                    
+                    document.getElementById("result").innerHTML = 
+                        `<p>Year: ${year}</p>
+                         <p>Make: ${make}</p>
+                         <p>Model: ${model}</p>
+                         <p>Trim: ${trim}</p>
+                         <p>Series: ${series}</p>`;
+                })
+                .catch(error => {
+                    console.error("Error fetching data:", error);
+                    document.getElementById("result").innerText = "Error retrieving vehicle details";
+                });
+        }
+    </script>
+</body>
+</html>
