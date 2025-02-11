@@ -9,15 +9,23 @@
             font-family: Arial, sans-serif;
             text-align: center;
             margin: 50px;
+            background-color: #0a1f44;
+            color: white;
         }
         input {
             width: 300px;
             padding: 10px;
             margin: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
         }
         button {
             padding: 10px 20px;
             cursor: pointer;
+            background-color: #1e3a8a;
+            color: white;
+            border: none;
+            border-radius: 5px;
         }
         #result {
             margin-top: 20px;
@@ -48,13 +56,15 @@
                     let model = results.find(item => item.Variable === "Model")?.Value || "N/A";
                     let trim = results.find(item => item.Variable === "Trim")?.Value || "N/A";
                     let series = results.find(item => item.Variable === "Series")?.Value || "N/A";
+                    let driveType = results.find(item => item.Variable === "Drive Type")?.Value || "N/A";
                     
                     document.getElementById("result").innerHTML = 
                         `<p>Year: ${year}</p>
                          <p>Make: ${make}</p>
                          <p>Model: ${model}</p>
                          <p>Trim: ${trim}</p>
-                         <p>Series: ${series}</p>`;
+                         <p>Series: ${series}</p>
+                         <p>Drive Type: ${driveType}</p>`;
                 })
                 .catch(error => {
                     console.error("Error fetching data:", error);
