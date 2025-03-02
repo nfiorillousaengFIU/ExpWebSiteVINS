@@ -40,11 +40,27 @@
             margin-top: 20px;
             font-weight: bold;
         }
+        #scanner-container {
+            position: relative;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+        }
         video {
             width: 100%;
             max-width: 400px;
-            margin-top: 20px;
             border-radius: 5px;
+        }
+        .grid-overlay {
+            position: absolute;
+            width: 80%;
+            height: 50%;
+            border: 2px solid red;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -53,7 +69,10 @@
     <input type="text" id="vin" placeholder="Enter VIN">
     <button onclick="decodeVIN()">Decode</button>
     <button onclick="startScanner()">Scan VIN</button>
-    <video id="scanner" style="display:none;"></video>
+    <div id="scanner-container">
+        <video id="scanner"></video>
+        <div class="grid-overlay"></div>
+    </div>
     <div id="result"></div>
 
     <script>
@@ -82,13 +101,15 @@
         }
 
         function startScanner() {
+            const scannerContainer = document.getElementById("scanner-container");
             const video = document.getElementById("scanner");
-            video.style.display = "block";
+            scannerContainer.style.display = "flex";
+            
             const codeReader = new ZXing.BrowserBarcodeReader();
             codeReader.decodeFromVideoDevice(undefined, "scanner", (result, err) => {
                 if (result) {
                     document.getElementById("vin").value = result.text;
-                    video.style.display = "none";
+                    scannerContainer.style.display = "none";
                     codeReader.reset();
                 }
             });
