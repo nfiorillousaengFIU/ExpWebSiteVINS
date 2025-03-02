@@ -43,6 +43,7 @@
         #scanner-container {
             position: relative;
             display: none;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             margin-top: 20px;
@@ -54,13 +55,18 @@
         }
         .grid-overlay {
             position: absolute;
-            width: 80%;
-            height: 50%;
-            border: 2px solid red;
+            width: 70%;
+            height: 30%;
+            border: 3px solid #00ff00;
             display: flex;
             justify-content: center;
             align-items: center;
             pointer-events: none;
+        }
+        #scan-status {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #ffcc00;
         }
     </style>
 </head>
@@ -72,6 +78,7 @@
     <div id="scanner-container">
         <video id="scanner"></video>
         <div class="grid-overlay"></div>
+        <p id="scan-status">Scanning in progress...</p>
     </div>
     <div id="result"></div>
 
@@ -102,15 +109,27 @@
 
         function startScanner() {
             const scannerContainer = document.getElementById("scanner-container");
-            const video = document.getElementById("scanner");
+            const scanStatus = document.getElementById("scan-status");
             scannerContainer.style.display = "flex";
+            scanStatus.textContent = "Scanning in progress...";
+            scanStatus.style.color = "#ffcc00";
             
             const codeReader = new ZXing.BrowserBarcodeReader();
             codeReader.decodeFromVideoDevice(undefined, "scanner", (result, err) => {
                 if (result) {
-                    document.getElementById("vin").value = result.text;
-                    scannerContainer.style.display = "none";
-                    codeReader.reset();
+                    const vin = result.text.trim();
+                    if (vin.length === 17) { // Ensures valid VIN
+                        document.getElementById("vin").value = vin;
+                        scanStatus.textContent = "Scan successful!";
+                        scanStatus.style.color = "#00ff00";
+                        setTimeout(() => {
+                            scannerContainer.style.display = "none";
+                            codeReader.reset();
+                        }, 1000);
+                    } else {
+                        scanStatus.textContent = "Invalid VIN detected. Keep scanning...";
+                        scanStatus.style.color = "#ff0000";
+                    }
                 }
             });
         }
