@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VIN Decoder</title>
+    <title>VIN Decoder with Scanner</title>
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -28,10 +29,16 @@
             color: white;
             border: none;
             border-radius: 5px;
+            margin: 5px;
         }
         #result {
             margin-top: 20px;
             font-weight: bold;
+        }
+        video {
+            width: 100%;
+            max-width: 400px;
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -39,16 +46,19 @@
     <h2>VIN Decoder</h2>
     <input type="text" id="vin" placeholder="Enter VIN">
     <button onclick="decodeVIN()">Decode</button>
+    <button onclick="startScanner()">Scan VIN</button>
+    <video id="scanner" style="display:none;"></video>
     <div id="result"></div>
 
     <script>
         function decodeVIN() {
             const vin = document.getElementById("vin").value.trim();
-            if (!vin) {
-                alert("Please enter a VIN");
+            const resultDiv = document.getElementById("result");
+            if (!vin || vin.length !== 17) {
+                alert("Please enter a valid 17-character VIN");
                 return;
             }
-            
+            resultDiv.innerHTML = "<p>Decoding VIN...</p>";
             fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVIN/${vin}?format=json`)
                 .then(response => response.json())
                 .then(data => {
@@ -57,26 +67,25 @@
                     let make = results.find(item => item.Variable === "Make")?.Value || "N/A";
                     let model = results.find(item => item.Variable === "Model")?.Value || "N/A";
                     let trim = results.find(item => item.Variable === "Trim")?.Value || "N/A";
-                    let series = results.find(item => item.Variable === "Series")?.Value || "N/A";
-                    let driveType = results.find(item => item.Variable === "Drive Type")?.Value || "N/A";
-                    let trim2 = results.find(item => item.Variable === "Trim2")?.Value || "N/A";
-                    let series2 = results.find(item => item.Variable === "Series2")?.Value || "N/A";
-            
-                    
-                    document.getElementById("result").innerHTML = 
-                        `<p>Year: ${year}</p>
-                         <p>Make: ${make}</p>
-                         <p>Model: ${model}</p>
-                         <p>Trim: ${trim}</p>
-                         <p>Series: ${series}</p>
-                         <p>Drive Type: ${driveType}</p>
-                         <p>Trim2: ${trim2}</p>
-                         <p>Series2: ${series2}</p>`;
+                    resultDiv.innerHTML = `<p>Year: ${year}</p><p>Make: ${make}</p><p>Model: ${model}</p><p>Trim: ${trim}</p>`;
                 })
                 .catch(error => {
                     console.error("Error fetching data:", error);
-                    document.getElementById("result").innerText = "Error retrieving vehicle details";
+                    resultDiv.innerHTML = "<p style='color: red;'>Error retrieving vehicle details.</p>";
                 });
+        }
+
+        function startScanner() {
+            const video = document.getElementById("scanner");
+            video.style.display = "block";
+            const codeReader = new ZXing.BrowserBarcodeReader();
+            codeReader.decodeFromVideoDevice(undefined, "scanner", (result, err) => {
+                if (result) {
+                    document.getElementById("vin").value = result.text;
+                    video.style.display = "none";
+                    codeReader.reset();
+                }
+            });
         }
     </script>
 </body>
