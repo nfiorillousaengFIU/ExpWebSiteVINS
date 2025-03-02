@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>VIN Decoder with Scanner</title>
-    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <script src="https://unpkg.com/quagga/dist/quagga.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -52,21 +52,43 @@
             width: 100%;
             max-width: 400px;
             border-radius: 5px;
+            background-color: rgba(0, 0, 0, 0.6); /* Dark background for video */
         }
         .grid-overlay {
             position: absolute;
-            width: 70%;
-            height: 30%;
+            width: 80%;
+            height: 40%;
             border: 3px solid #00ff00;
             display: flex;
             justify-content: center;
             align-items: center;
             pointer-events: none;
+            animation: pulse 1s infinite alternate;
         }
         #scan-status {
             margin-top: 10px;
             font-size: 16px;
             color: #ffcc00;
+        }
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                border-color: #00ff00;
+            }
+            100% {
+                transform: scale(1.1);
+                border-color: #ffcc00;
+            }
+        }
+        /* Semi-transparent background for the scanner area */
+        .scanner-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1;
         }
     </style>
 </head>
@@ -76,6 +98,8 @@
     <button onclick="decodeVIN()">Decode</button>
     <button onclick="startScanner()">Scan VIN</button>
     <div id="scanner-container">
+        <!-- Add a background overlay for the scanner area -->
+        <div class="scanner-background"></div>
         <video id="scanner"></video>
         <div class="grid-overlay"></div>
         <p id="scan-status">Scanning in progress...</p>
@@ -94,6 +118,10 @@
             fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVIN/${vin}?format=json`)
                 .then(response => response.json())
                 .then(data => {
+                    if (data.Results.length === 0) {
+                        resultDiv.innerHTML = "<p>No vehicle data found for this VIN.</p>";
+                        return;
+                    }
                     let results = data.Results;
                     let year = results.find(item => item.Variable === "Model Year")?.Value || "N/A";
                     let make = results.find(item => item.Variable === "Make")?.Value || "N/A";
@@ -113,23 +141,38 @@
             scannerContainer.style.display = "flex";
             scanStatus.textContent = "Scanning in progress...";
             scanStatus.style.color = "#ffcc00";
-            
-            const codeReader = new ZXing.BrowserBarcodeReader();
-            codeReader.decodeFromVideoDevice(undefined, "scanner", (result, err) => {
-                if (result) {
-                    const vin = result.text.trim();
-                    if (vin.length === 17) { // Ensures valid VIN
-                        document.getElementById("vin").value = vin;
-                        scanStatus.textContent = "Scan successful!";
-                        scanStatus.style.color = "#00ff00";
-                        setTimeout(() => {
-                            scannerContainer.style.display = "none";
-                            codeReader.reset();
-                        }, 1000);
-                    } else {
-                        scanStatus.textContent = "Invalid VIN detected. Keep scanning...";
-                        scanStatus.style.color = "#ff0000";
-                    }
+
+            // Initialize QuaggaJS scanner
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.querySelector("#scanner"), // The video element
+                },
+                decoder: {
+                    readers: ["code_128_reader", "ean_reader", "qr_reader"], // Support for QR codes and 1D barcodes
+                },
+            }, function(err) {
+                if (err) {
+                    console.error(err);
+                    return;
+                }
+                Quagga.start();
+            });
+
+            Quagga.onDetected(function(result) {
+                const vin = result.codeResult.code;
+                if (vin.length === 17) { // Ensure valid VIN length
+                    document.getElementById("vin").value = vin;
+                    scanStatus.textContent = "Scan successful!";
+                    scanStatus.style.color = "#00ff00";
+                    setTimeout(() => {
+                        scannerContainer.style.display = "none";
+                        Quagga.stop();
+                    }, 1000);
+                } else {
+                    scanStatus.textContent = "Invalid VIN detected. Keep scanning...";
+                    scanStatus.style.color = "#ff0000";
                 }
             });
         }
