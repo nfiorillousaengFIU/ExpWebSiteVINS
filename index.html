@@ -42,7 +42,7 @@
         }
         #scanner-container {
             position: relative;
-            display: none; /* Hidden until camera permission is granted */
+            display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
@@ -145,20 +145,35 @@
             scannerContainer.style.display = "none"; // Initially hide the scanner
 
             // Request camera permission before starting the scanner
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(function(stream) {
-                    // Camera access granted
-                    console.log("Camera stream started.");
-                    scannerContainer.style.display = "flex"; // Show the scanner container
-                    videoElement.srcObject = stream; // Set the video source to the camera stream
+            navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: "environment", // Use rear camera
+                    focusMode: "auto", // Request autofocus
+                    width: { ideal: 1280 }, // Set a good resolution
+                    height: { ideal: 720 }
+                }
+            })
+            .then(function(stream) {
+                // Camera access granted
+                console.log("Camera stream started.");
+                scannerContainer.style.display = "flex"; // Show the scanner container
+                videoElement.srcObject = stream; // Set the video source to the camera stream
 
-                    // Now start ZXing for scanning
-                    startZXingScanner();
-                })
-                .catch(function(error) {
-                    console.error("Error accessing camera: ", error);
-                    alert("Camera access is required for scanning. Please enable camera permissions.");
-                });
+                // Apply autofocus constraints
+                const track = videoElement.srcObject.getVideoTracks()[0];
+                const capabilities = track.getCapabilities();
+                
+                if (capabilities.focusDistance) {
+                    track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+                }
+
+                // Now start ZXing for scanning
+                startZXingScanner();
+            })
+            .catch(function(error) {
+                console.error("Error accessing camera: ", error);
+                alert("Camera access is required for scanning. Please enable camera permissions.");
+            });
         }
 
         function startZXingScanner() {
