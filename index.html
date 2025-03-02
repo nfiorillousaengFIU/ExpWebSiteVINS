@@ -161,6 +161,9 @@
                     name: "Live",
                     type: "LiveStream",
                     target: document.querySelector("#scanner"), // The video element
+                    constraints: {
+                        facingMode: "environment" // Prefer the rear camera
+                    }
                 },
                 decoder: {
                     readers: ["code_128_reader", "ean_reader", "qr_reader"], // Support for QR codes and 1D barcodes
@@ -193,3 +196,4 @@
     </script>
 </body>
 </html>
+
