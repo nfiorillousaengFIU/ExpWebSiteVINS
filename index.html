@@ -42,7 +42,7 @@
         }
         #scanner-container {
             position: relative;
-            display: none;
+            display: none; /* Hidden until camera permission is granted */
             flex-direction: column;
             justify-content: center;
             align-items: center;
@@ -138,15 +138,18 @@
         function startScanner() {
             const scannerContainer = document.getElementById("scanner-container");
             const scanStatus = document.getElementById("scan-status");
-            scannerContainer.style.display = "flex";
-            scanStatus.textContent = "Scanning in progress...";
-            scanStatus.style.color = "#ffcc00";
+            scannerContainer.style.display = "none"; // Initially hide the scanner
 
             // Request camera permission before starting the scanner
             navigator.mediaDevices.getUserMedia({ video: true })
                 .then(function(stream) {
+                    // Camera access granted
                     console.log("Camera stream started.");
-                    startQuaggaScanner(); // Start the scanner only after the camera is accessible
+                    scannerContainer.style.display = "flex"; // Show the scanner container
+                    document.querySelector("#scanner").srcObject = stream; // Set the video source to the camera stream
+
+                    // Now start Quagga for scanning
+                    startQuaggaScanner();
                 })
                 .catch(function(error) {
                     console.error("Error accessing camera: ", error);
@@ -196,4 +199,3 @@
     </script>
 </body>
 </html>
-
