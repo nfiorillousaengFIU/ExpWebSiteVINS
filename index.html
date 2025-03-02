@@ -142,6 +142,19 @@
             scanStatus.textContent = "Scanning in progress...";
             scanStatus.style.color = "#ffcc00";
 
+            // Request camera permission before starting the scanner
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    console.log("Camera stream started.");
+                    startQuaggaScanner(); // Start the scanner only after the camera is accessible
+                })
+                .catch(function(error) {
+                    console.error("Error accessing camera: ", error);
+                    alert("Camera access is required for scanning. Please enable camera permissions.");
+                });
+        }
+
+        function startQuaggaScanner() {
             // Initialize QuaggaJS scanner
             Quagga.init({
                 inputStream: {
@@ -154,9 +167,10 @@
                 },
             }, function(err) {
                 if (err) {
-                    console.error(err);
+                    console.error("Quagga initialization error:", err);
                     return;
                 }
+                console.log("Quagga started.");
                 Quagga.start();
             });
 
