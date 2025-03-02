@@ -56,8 +56,8 @@
         }
         .grid-overlay {
             position: absolute;
-            width: 80%;
-            height: 40%;
+            width: 70%;
+            height: 30%;
             border: 3px solid #00ff00;
             display: flex;
             justify-content: center;
@@ -69,11 +69,6 @@
             margin-top: 10px;
             font-size: 16px;
             color: #ffcc00;
-        }
-        #detected-vin {
-            margin-top: 10px;
-            color: #00ff00;
-            font-size: 18px;
         }
         @keyframes pulse {
             0% {
@@ -106,13 +101,16 @@
         <!-- Add a background overlay for the scanner area -->
         <div class="scanner-background"></div>
         <video id="scanner"></video>
-        <div class="grid-overlay" id="grid-overlay"></div>
+        <div class="grid-overlay"></div>
         <p id="scan-status">Scanning in progress...</p>
-        <p id="detected-vin"></p>
     </div>
     <div id="result"></div>
 
     <script>
+        let codeReader;
+        let videoElement = document.getElementById("scanner");
+        let gridOverlay = document.querySelector(".grid-overlay");
+
         function decodeVIN() {
             const vin = document.getElementById("vin").value.trim();
             const resultDiv = document.getElementById("result");
@@ -144,7 +142,6 @@
         function startScanner() {
             const scannerContainer = document.getElementById("scanner-container");
             const scanStatus = document.getElementById("scan-status");
-            const detectedVin = document.getElementById("detected-vin");
             scannerContainer.style.display = "none"; // Initially hide the scanner
 
             // Request camera permission before starting the scanner
@@ -153,7 +150,7 @@
                     // Camera access granted
                     console.log("Camera stream started.");
                     scannerContainer.style.display = "flex"; // Show the scanner container
-                    document.querySelector("#scanner").srcObject = stream; // Set the video source to the camera stream
+                    videoElement.srcObject = stream; // Set the video source to the camera stream
 
                     // Now start ZXing for scanning
                     startZXingScanner();
@@ -165,45 +162,48 @@
         }
 
         function startZXingScanner() {
-            const codeReader = new ZXing.BrowserBarcodeReader();
-            const videoElement = document.getElementById("scanner");
-            const gridOverlay = document.getElementById("grid-overlay");
-            const detectedVin = document.getElementById("detected-vin");
-
+            codeReader = new ZXing.BrowserBarcodeReader();
             codeReader.decodeFromVideoDevice(undefined, videoElement, (result, err) => {
+                const scanStatus = document.getElementById("scan-status");
                 if (result) {
                     const vin = result.text.trim();
                     if (vin.length === 17) { // Ensure valid VIN length
-                        detectedVin.textContent = "Detected VIN: " + vin;
-                        detectedVin.style.color = "#00ff00"; // Green for valid VIN
-                        updateGridOverlay(result);
+                        document.getElementById("vin").value = vin;
+                        scanStatus.textContent = `Detected VIN: ${vin}`;
+                        scanStatus.style.color = "#00ff00";
+                        positionGridOverlay(result);
                     } else {
-                        detectedVin.textContent = "Invalid VIN detected: " + vin;
-                        detectedVin.style.color = "#ff0000"; // Red for invalid VIN
-                        updateGridOverlay(result);
+                        scanStatus.textContent = `Reading: ${vin} (Invalid VIN)`;
+                        scanStatus.style.color = "#ffcc00";
+                        positionGridOverlay(result);
                     }
                 } else if (err) {
-                    detectedVin.textContent = "Error: " + err;
+                    scanStatus.textContent = "Error scanning, trying again...";
+                    scanStatus.style.color = "#ff0000";
                 }
             });
         }
 
-        function updateGridOverlay(result) {
-            const gridOverlay = document.getElementById("grid-overlay");
-            const points = result.resultPoints; // Points of the detected barcode
-            if (points && points.length === 4) {
-                const [p1, p2, p3, p4] = points;
-                const x = Math.min(p1.x, p2.x, p3.x, p4.x);
-                const y = Math.min(p1.y, p2.y, p3.y, p4.y);
-                const width = Math.abs(p1.x - p3.x);
-                const height = Math.abs(p1.y - p3.y);
+        function positionGridOverlay(result) {
+            // Get the bounding box of the detected barcode/QR code
+            const points = result.result?.locations[0];
+            if (points) {
+                const minX = Math.min(...points.map(p => p.x));
+                const maxX = Math.max(...points.map(p => p.x));
+                const minY = Math.min(...points.map(p => p.y));
+                const maxY = Math.max(...points.map(p => p.y));
 
-                // Apply CSS transform to move and resize the grid overlay
-                gridOverlay.style.left = `${x}px`;
-                gridOverlay.style.top = `${y}px`;
+                const width = maxX - minX;
+                const height = maxY - minY;
+                const left = minX;
+                const top = minY;
+
+                // Apply the coordinates to the grid overlay
                 gridOverlay.style.width = `${width}px`;
                 gridOverlay.style.height = `${height}px`;
-                gridOverlay.style.transition = "all 0.2s ease-out"; // Smooth transition for the grid
+                gridOverlay.style.left = `${left}px`;
+                gridOverlay.style.top = `${top}px`;
+                gridOverlay.style.transition = 'all 0.3s ease';
             }
         }
     </script>
