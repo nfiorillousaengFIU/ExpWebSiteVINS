@@ -70,6 +70,11 @@
             font-size: 16px;
             color: #ffcc00;
         }
+        #detected-vin {
+            margin-top: 10px;
+            color: #00ff00;
+            font-size: 18px;
+        }
         @keyframes pulse {
             0% {
                 transform: scale(1);
@@ -101,8 +106,9 @@
         <!-- Add a background overlay for the scanner area -->
         <div class="scanner-background"></div>
         <video id="scanner"></video>
-        <div class="grid-overlay"></div>
+        <div class="grid-overlay" id="grid-overlay"></div>
         <p id="scan-status">Scanning in progress...</p>
+        <p id="detected-vin"></p>
     </div>
     <div id="result"></div>
 
@@ -138,6 +144,7 @@
         function startScanner() {
             const scannerContainer = document.getElementById("scanner-container");
             const scanStatus = document.getElementById("scan-status");
+            const detectedVin = document.getElementById("detected-vin");
             scannerContainer.style.display = "none"; // Initially hide the scanner
 
             // Request camera permission before starting the scanner
@@ -160,24 +167,44 @@
         function startZXingScanner() {
             const codeReader = new ZXing.BrowserBarcodeReader();
             const videoElement = document.getElementById("scanner");
+            const gridOverlay = document.getElementById("grid-overlay");
+            const detectedVin = document.getElementById("detected-vin");
 
             codeReader.decodeFromVideoDevice(undefined, videoElement, (result, err) => {
                 if (result) {
                     const vin = result.text.trim();
                     if (vin.length === 17) { // Ensure valid VIN length
-                        document.getElementById("vin").value = vin;
-                        document.getElementById("scan-status").textContent = "Scan successful!";
-                        document.getElementById("scan-status").style.color = "#00ff00";
-                        setTimeout(() => {
-                            document.getElementById("scanner-container").style.display = "none";
-                            codeReader.reset();
-                        }, 1000);
+                        detectedVin.textContent = "Detected VIN: " + vin;
+                        detectedVin.style.color = "#00ff00"; // Green for valid VIN
+                        updateGridOverlay(result);
                     } else {
-                        document.getElementById("scan-status").textContent = "Invalid VIN detected. Keep scanning...";
-                        document.getElementById("scan-status").style.color = "#ff0000";
+                        detectedVin.textContent = "Invalid VIN detected: " + vin;
+                        detectedVin.style.color = "#ff0000"; // Red for invalid VIN
+                        updateGridOverlay(result);
                     }
+                } else if (err) {
+                    detectedVin.textContent = "Error: " + err;
                 }
             });
+        }
+
+        function updateGridOverlay(result) {
+            const gridOverlay = document.getElementById("grid-overlay");
+            const points = result.resultPoints; // Points of the detected barcode
+            if (points && points.length === 4) {
+                const [p1, p2, p3, p4] = points;
+                const x = Math.min(p1.x, p2.x, p3.x, p4.x);
+                const y = Math.min(p1.y, p2.y, p3.y, p4.y);
+                const width = Math.abs(p1.x - p3.x);
+                const height = Math.abs(p1.y - p3.y);
+
+                // Apply CSS transform to move and resize the grid overlay
+                gridOverlay.style.left = `${x}px`;
+                gridOverlay.style.top = `${y}px`;
+                gridOverlay.style.width = `${width}px`;
+                gridOverlay.style.height = `${height}px`;
+                gridOverlay.style.transition = "all 0.2s ease-out"; // Smooth transition for the grid
+            }
         }
     </script>
 </body>
