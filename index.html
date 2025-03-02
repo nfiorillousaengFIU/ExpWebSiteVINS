@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>VIN Decoder with Scanner</title>
-    <script src="https://unpkg.com/quagga/dist/quagga.min.js"></script>
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -52,7 +52,7 @@
             width: 100%;
             max-width: 400px;
             border-radius: 5px;
-            /*background-color: rgba(0, 0, 0, 0.6);  Dark background for video */
+            background-color: rgba(0, 0, 0, 0.6); /* Dark background for video */
         }
         .grid-overlay {
             position: absolute;
@@ -148,8 +148,8 @@
                     scannerContainer.style.display = "flex"; // Show the scanner container
                     document.querySelector("#scanner").srcObject = stream; // Set the video source to the camera stream
 
-                    // Now start Quagga for scanning
-                    startQuaggaScanner();
+                    // Now start ZXing for scanning
+                    startZXingScanner();
                 })
                 .catch(function(error) {
                     console.error("Error accessing camera: ", error);
@@ -157,42 +157,25 @@
                 });
         }
 
-        function startQuaggaScanner() {
-            // Initialize QuaggaJS scanner
-            Quagga.init({
-                inputStream: {
-                    name: "Live",
-                    type: "LiveStream",
-                    target: document.querySelector("#scanner"), // The video element
-                    constraints: {
-                        facingMode: "environment" // Prefer the rear camera
-                    }
-                },
-                decoder: {
-                    readers: ["code_128_reader", "ean_reader", "qr_reader"], // Support for QR codes and 1D barcodes
-                },
-            }, function(err) {
-                if (err) {
-                    console.error("Quagga initialization error:", err);
-                    return;
-                }
-                console.log("Quagga started.");
-                Quagga.start();
-            });
+        function startZXingScanner() {
+            const codeReader = new ZXing.BrowserBarcodeReader();
+            const videoElement = document.getElementById("scanner");
 
-            Quagga.onDetected(function(result) {
-                const vin = result.codeResult.code;
-                if (vin.length === 17) { // Ensure valid VIN length
-                    document.getElementById("vin").value = vin;
-                    scanStatus.textContent = "Scan successful!";
-                    scanStatus.style.color = "#00ff00";
-                    setTimeout(() => {
-                        scannerContainer.style.display = "none";
-                        Quagga.stop();
-                    }, 1000);
-                } else {
-                    scanStatus.textContent = "Invalid VIN detected. Keep scanning...";
-                    scanStatus.style.color = "#ff0000";
+            codeReader.decodeFromVideoDevice(undefined, videoElement, (result, err) => {
+                if (result) {
+                    const vin = result.text.trim();
+                    if (vin.length === 17) { // Ensure valid VIN length
+                        document.getElementById("vin").value = vin;
+                        document.getElementById("scan-status").textContent = "Scan successful!";
+                        document.getElementById("scan-status").style.color = "#00ff00";
+                        setTimeout(() => {
+                            document.getElementById("scanner-container").style.display = "none";
+                            codeReader.reset();
+                        }, 1000);
+                    } else {
+                        document.getElementById("scan-status").textContent = "Invalid VIN detected. Keep scanning...";
+                        document.getElementById("scan-status").style.color = "#ff0000";
+                    }
                 }
             });
         }
